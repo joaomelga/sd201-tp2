@@ -77,13 +77,18 @@ class PointSet:
             The best Gini gain achievable by splitting this set along one of
             its features.
         """
+        if (len(self.features) == 0):
+            self.best_feature_value = None
+            return (None, None)
+        
         num_of_features = len(self.features[0])
         splits = []
         
         for feature_index in range(num_of_features):
+            # Filter feature characteristics
             feature = self.features[:, feature_index]
             feature_possible_values = set(feature)
-            
+
             for value in feature_possible_values:
                 mask_value = (feature < value) if self.types[feature_index] == FeaturesTypes.REAL else (feature == value)
                 
@@ -110,6 +115,7 @@ class PointSet:
 
         best_split_index = np.argmax(all_gini_gains)
         
+        # Get the best feature along which splitting provides best gini gain
         best_feature_index = splits[best_split_index][0]
         best_feature_value = splits[best_split_index][1]
         best_gini_gain = splits[best_split_index][2]
@@ -120,17 +126,20 @@ class PointSet:
         return (best_feature_index, best_gini_gain)
             
     def get_best_threshold(self) -> float:
+        # We define the threshold as the average of the maximum and minimum in the case of REAL features
         if (self.types[self.best_feature_index] == FeaturesTypes.REAL):
             mask_value = self.features[:, self.best_feature_index] < self.best_feature_value
                 
             features_left =  self.features[mask_value]
             features_right = self.features[np.logical_not(mask_value)]
             
-            max_left = max(features_left[:, self.best_feature_index])
-            min_right = min(features_right[:, self.best_feature_index])
+            max_left = max(features_left[:, self.best_feature_index]) if len(features_left) != 0 else 0
+            min_right = min(features_right[:, self.best_feature_index]) if len(features_right) != 0 else 0
 
             return (max_left + min_right) / 2
+        # Otherwise, in case of CLASS features we define the threshold as the value of the best feature
         elif (self.types[self.best_feature_index] == FeaturesTypes.CLASSES):
             return self.best_feature_value
+        # Or None in case of BOOLEAN features
         else:
             return None
